@@ -1,4 +1,4 @@
-(ns aoc.dayTEMPLATE
+(ns aoc.day0
   (:require
    [clojure.repl]
    [clojure.pprint :as pp]
@@ -11,18 +11,15 @@
    )
   (:use aoc.core))
 
-(def day 99)
+(def day 0)
 (def infile (slurp (mk-input-filename day)))
 (def testfile (slurp (mk-test-input-filename day)))
 
 
+(print testfile)
 (defn prepare-input [str-input]
-  (let [[_ xa xb ya yb] (re-matches
-                         #"target area: x=(-?\d+)..(-?\d+), y=(-?\d+)..(-?\d+)"
-                         str-input)
-        f #(Integer/parseInt %)
-        ]
-  {:x1 (f xa) :y1 (f ya) :x2 (f xb) :y2 (f yb)}))
+  (map (fn [x] (Integer/parseInt x)) (s/split-lines str-input))
+  )
 
 
 (def test-input (prepare-input testfile))
@@ -30,23 +27,25 @@
 
 (def t1 test-input)
 
-(t/are [i o] (= i o)
-       [1 1])
+(rest t1)
 
+(def lt (fn [a b] (if (> b a) 1 0)))
 
 (defn part1 [input]
-  (pprint input))
+  (sum (map lt input (rest input)))
+  )
 
 ; (part1 input)
 ; (println (time (part1 input)))
 
 
+(defn sums [in] (map + in (rest in) (rest (rest in) )))
 
 (defn part2 [input]
-  (pprint input))
+  (part1 (sums input) ))
 
 ; (prn (time (part2 input)))
-; (part2 input)
+(part2 input)
 
 (defn solve-problem [infile]
   (let [input-string (slurp infile)
