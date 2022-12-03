@@ -16,3 +16,8 @@
   (reduce (fn [acc e] (call-if (pred e) inc acc)) 0 coll))
 
 (defn sum [coll] (reduce +' coll))
+
+; (defn common-elements [lst] (apply st/intersection (map set lst)))
+
+(defn partiotion-by-empty-line [lst]
+  (remove #(every? empty? %) (partition-by empty? lst)))
