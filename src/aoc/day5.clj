@@ -17,13 +17,23 @@
 
 
 (defn partition-by-empty-line [lst]
-  (remove #(every? empty? %) (partition-by empty? lst))
-  )
+  (remove #(every? empty? %) (partition-by empty? lst)))
+
+(defn get-one [s]
+  (let [len (count s)
+        idx (set (range 1 len 4))
+        f (fn [i a] (if (contains? idx i) a))
+        ]
+    (keep-indexed f s)))
+
+(defn get-stacks [lst]
+  (map get-one lst))
 
 (defn prepare-input [str-input]
   (let [lines (s/split-lines str-input)
         [stacks inst] (partition-by-empty-line lines)
         stacks' (map #(s/split % #"") stacks)
+        stacks'' (get-stacks stacks')
         inst' (map #(s/replace % #"[^0-9]" "") inst)
         inst'' (map (fn [lst] (map #(Integer/parseInt (str %)) lst)) inst')
         inst''' (map (fn [i]  {:move (first i) :from (second i)  :to (nth i 2)}) inst'')
@@ -31,13 +41,16 @@
   ; (print stacks')
     ; (println "")
   (print (first inst'''))
-    { :stacks 1 :inst inst'''}
+    { :stacks (drop-last stacks'')  :inst inst'''}
     ))
+
+
 
 (def test-input (prepare-input testfile))
 (def input (prepare-input infile))
 
 (def t1 test-input)
+(:stacks t1)
 
 (defn range-contains? [[a b] [x y]]
   (cond
