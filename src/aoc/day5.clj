@@ -50,21 +50,32 @@
 (def input (prepare-input infile))
 
 (def t1 test-input)
-(:stacks t1)
+(def s1 (transpose (:stacks t1)))
+(def i1 (:inst t1))
+(print i1)
 
-(defn range-contains? [[a b] [x y]]
-  (cond
-    (and (>= a x) (<= b y)) true
-    (and (>= x a) (<= y b)) true
-    :else false
-    ))
+(defn unroll [inst]
+  (mapcat #(repeat (:move %) {:from (:from %) :to (:to %)}) inst))
 
-(t/are [i o] (= o (apply range-contains? i))
-  [[1 3] [2 3]] true
-  [[1 3] [2 5]] false
-  [[20 33] [5 7]] false
-  [[4 5] [2 7]] true
-  )
+(def i2 (unroll i1))
+
+(defn step-one [st inst ]
+  (let [fi (- (:from inst) 1)
+        ti (- (:to inst) 1)
+        element (first (keep-indexed (fn [i el] (if (= i fi) el nil)) st))
+        ]
+  (map-indexed
+    (fn [l idx] (cond
+                 (= idx fi) (pop l)
+                 (= idx ti ) (conj l element)
+                 ))
+    st)))
+
+(print i2)
+(step-one s1 (first i2))
+
+(defn transpose [m]
+  (apply mapv vector m))
 
 (defn part1 [input]
   (count (filter #(apply range-contains? %) input)))
