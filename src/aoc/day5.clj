@@ -29,19 +29,30 @@
 (defn get-stacks [lst]
   (map get-one lst))
 
+
+(defn parse-inst [s]
+  (let [
+        s' (s/replace s #"move " "")
+        s'' (s/replace s' #" from " ".")
+        s''' (s/replace s'' #" to " ".")
+        inst' (s/split s''' #"\.")
+        inst'' (map #(Integer/parseInt (str %)) inst')
+        inst''' {:move (first inst'') :from (second inst'')  :to (nth inst'' 2)}
+        ]
+    inst'''
+    )
+  )
+; (parse-inst "move 16 from 8 to 4")
+; (parse-inst "move 1 from 9 to 2")
+
 (defn prepare-input [str-input]
   (let [lines (s/split-lines str-input)
         [stacks inst] (partition-by-empty-line lines)
         stacks' (map #(s/split % #"") stacks)
         stacks'' (get-stacks stacks')
-        inst' (map #(s/replace % #"[^0-9]" "") inst)
-        inst'' (map (fn [lst] (map #(Integer/parseInt (str %)) lst)) inst')
-        inst''' (map (fn [i]  {:move (first i) :from (second i)  :to (nth i 2)}) inst'')
+        inst' (map parse-inst inst)
         ]
-  ; (print stacks')
-    ; (println "")
-  (print (first inst'''))
-    { :stacks (drop-last stacks'')  :inst inst'''}
+    { :stacks (drop-last stacks'')  :inst inst'}
     ))
 
 
@@ -52,79 +63,102 @@
 (defn transpose [m]
   (apply mapv vector m))
 
-(def t1 test-input)
-(def s1 (transpose (:stacks t1)))
-(def s2 (mapv (fn [l] (remove #(= " " %) l)) s1))
-(def s3 (mapv (comp vec reverse) s2))
+; (def t1 test-input)
+; (def s1 (transpose (:stacks t1)))
+; (def s2 (mapv (fn [l] (remove #(= " " %) l)) s1))
+; (def s3 (mapv (comp vec reverse) s2))
 ; (def i1 (:inst t1))
-; (print s3)
 
 (defn unroll [inst]
   (mapcat #(repeat (:move %) {:from (:from %) :to (:to %)}) inst))
 
 (def i2 (unroll i1))
 
-; (def spy #(do (println "DEBUG:" %) %))
+(defn preprocess-stacks [st]
+  (let [
+        st' (transpose st)
+        st'' (mapv (fn [l] (remove #(= " " %) l)) st')
+        st''' (mapv (comp vec reverse) st'')
+        ]
+    (vec st''')
+    ))
+
+(defn preprocess-inst [i]
+  (unroll i))
+
 (defn step-one [st inst ]
   (let [fi (- (:from inst) 1)
         ti (- (:to inst) 1)
-        ; element (first (keep-indexed (fn [i el] (if (= i fi) el nil)) st))
-        element (first (nth st fi))
+        element (peek (nth st fi))
         ]
-  ; (map-indexed
-  ;   (fn [l idx] (cond
-  ;                (= idx fi) (pop l)
-  ;                (= idx ti ) (conj l element)
-  ;                ))
-  ;   st)
-    (println fi)
-    (println ti)
-    (println element)
-    (-> st
-        (update fi rest)
-        (update ti #(conj % element ))
-        )
+    (if (nil? element)
+      st
+      (-> st
+          (update fi pop)
+          (update ti #(conj % element ))
+          )
+      )
     ))
-
-(print i2)
-(step-one (vec s3) (first i2))
 
 (defn step-all [state steps]
   (reduce step-one state steps)
   )
 
-(step-all (vec s3) i2)
+; (step-all (vec s3) i2)
+; (step-all (preprocess-stacks (:stacks t1)) (preprocess-inst (:inst t1)))
+(defn top [st]
+  (map peek st))
 
-(defn part1 [input]
-  (count (filter #(apply range-contains? %) input)))
+; (top (step-all (preprocess-stacks (:stacks t1)) (preprocess-inst (:inst t1))))
+
+(defn part1 [{:keys [stacks inst]}]
+  (let [stacks' (preprocess-stacks stacks)
+        inst' (preprocess-inst inst)
+        ]
+    (apply str (top (step-all stacks' inst')))
+    ))
 
 ; (part1 t1)
 ; (part1 input)
+; (println (part1 input))
 
 
-(defn range-overlaps? [[a b] [x y]]
-  (cond
-    (and (<= x b) (>= y a)) true
-    (and (<= y a) (>= x b))  true
-    :else false
+(defn step-one2 [st inst ]
+  (let [fi (- (:from inst) 1)
+        ti (- (:to inst) 1)
+        move (:move inst)
+        elements (take move (nth st fi))
+        ]
+    (-> (mapv vec st)
+        (update fi #(drop move %))
+        (update ti #(concat elements %))
+        )))
+
+(defn step-all2 [state steps]
+  (reduce step-one2 state steps))
+
+(defn preprocess-stacks2 [st]
+  (let [ st' (transpose st)
+        st'' (map (fn [l] (remove #(= " " %) l)) st')
+        ]
+    st''))
+
+(defn top2 [st]
+  (map first st))
+
+(step-one2 (preprocess-stacks2 (:stacks t1)) (first (:inst t1)) )
+(step-all2 (preprocess-stacks2 (:stacks t1)) (:inst t1))
+
+(defn part2 [{:keys [stacks inst]}]
+  (let [stacks' (preprocess-stacks2 stacks)
+        ]
+    (apply str (top2 (step-all2 stacks' inst)))
     ))
-
-(t/are [i o] (= o (apply range-overlaps? i))
-  [[5 7] [7 9]] true
-  [[2 8] [3 7]] true
-  [[6 6] [4 6]] true
-  [[2 6] [4 8]] true
-
-  [[2 4] [6 8]] false
-  [[2 3] [4 5]] false
-  )
-
-(defn part2 [input]
-  (count (filter #(apply range-overlaps? %) input)))
 
 
 ; (part2 t1)
 ; (part2 input)
+; (print (part2 input)) 
 
 ; (prn (time (part2 input)))
 ; (part2 input)
