@@ -49,33 +49,51 @@
 (def test-input (prepare-input testfile))
 (def input (prepare-input infile))
 
+(defn transpose [m]
+  (apply mapv vector m))
+
 (def t1 test-input)
 (def s1 (transpose (:stacks t1)))
-(def i1 (:inst t1))
-(print i1)
+(def s2 (mapv (fn [l] (remove #(= " " %) l)) s1))
+(def s3 (mapv (comp vec reverse) s2))
+; (def i1 (:inst t1))
+; (print s3)
 
 (defn unroll [inst]
   (mapcat #(repeat (:move %) {:from (:from %) :to (:to %)}) inst))
 
 (def i2 (unroll i1))
 
+; (def spy #(do (println "DEBUG:" %) %))
 (defn step-one [st inst ]
   (let [fi (- (:from inst) 1)
         ti (- (:to inst) 1)
-        element (first (keep-indexed (fn [i el] (if (= i fi) el nil)) st))
+        ; element (first (keep-indexed (fn [i el] (if (= i fi) el nil)) st))
+        element (first (nth st fi))
         ]
-  (map-indexed
-    (fn [l idx] (cond
-                 (= idx fi) (pop l)
-                 (= idx ti ) (conj l element)
-                 ))
-    st)))
+  ; (map-indexed
+  ;   (fn [l idx] (cond
+  ;                (= idx fi) (pop l)
+  ;                (= idx ti ) (conj l element)
+  ;                ))
+  ;   st)
+    (println fi)
+    (println ti)
+    (println element)
+    (-> st
+        (update fi rest)
+        (update ti #(conj % element ))
+        )
+    ))
 
 (print i2)
-(step-one s1 (first i2))
+(step-one (vec s3) (first i2))
 
-(defn transpose [m]
-  (apply mapv vector m))
+(defn step-all [state steps]
+  (reduce step-one state steps)
+  )
+
+(step-all (vec s3) i2)
 
 (defn part1 [input]
   (count (filter #(apply range-contains? %) input)))
