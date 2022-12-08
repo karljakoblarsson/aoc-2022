@@ -34,10 +34,6 @@
 (defn transpose [m]
   (apply mapv vector m))
 
-; (defn delta [l] (map - l (conj l 0)))
-; (delta (first t1))
-; (first t1)
-; (conj (rest (first t1)) 0)
 
 (defn visible [idxfn rc otheridx]
   (:visible
@@ -54,9 +50,6 @@
    )
   )
 
-; (first t1)
-; (visible (fn [o i] [i o]) (first input) 0)
-; (visible (fn [o i] [(- 5 i) o]) (reverse (first t1))  0)
 
 (defn total [in]
   (let [rows in
@@ -89,12 +82,6 @@
            visible-rcols'
            )
     ))
-(count (total t1))
-(println (total t1))
-
-; (count input)
-; (* 99 4)
-; (println (total input))
 
 (defn part1 [in]
   (count (total in)))
@@ -102,41 +89,35 @@
 (part1 t1)
 (part1 input)
 
+; TODO Fix tihs
 (defn count-visible-line [line]
-  (println line)
   (:count
   (reduce
-    (fn [acc e] (if (> e (:height acc))
-                 (-> acc
-                  (update :count inc)
-                  (assoc :height e)
-                     )
-                  (reduced acc)))
-    { :height -1 :count 0}
-    line)
-   )
-  )
+    (fn [acc e]
+      (cond
+        (>= e (:height acc)) (reduced (update acc :count inc))
+        (< e (:height acc)) (update acc :count inc)
+        )
+      )
+    { :height (first line) :count 0}
+    (rest line))
+   ))
 
-(t/are p [i o] (= (count-visible-line i) o)
-       [1 2 3 4] 4
-       [5 5 3 5] 1
-       [1 2 3 4] 4
-       [1 2 3 4] 4
-       [1 2 3 4] 4
-       [1 2 3 4] 4
-       [1 2 3 4] 4
+(t/are [i o] (= (count-visible-line i) o)
+       [5 3] 1
+       [5 5 2] 1
+       [5 1 2] 2
+       [5 3 5 3] 2
+
+       [5 3 5 3] 2
+       [5 3 3] 2
+       [5 3] 1
+       [5 4 9] 2
        )
 
-(count-visible-line [1 5 3 4])
-(pp/pprint (m/matrix t1))
-(def t2 (m/matrix t1))
-
-(sel/sel t2 1 (sel/irange 4 2 -1))
-; m/emap-indexed
 (defn calc-scenic [mtr [r c]]
   (let [rend (- (m/row-count mtr) 1)
         cend (- (m/column-count mtr) 1)
-        whole-row (sel/sel mtr (sel/irange r rend 1) c)
         row (count-visible-line
               (sel/sel mtr (sel/irange r rend 1) c))
         rrow (count-visible-line
@@ -149,31 +130,19 @@
     (* row rrow col rcol)
     ))
 
-(calc-scenic t2 [1 1])
-
-(defn scenic-list [idxfn rc otheridx]
-  (:visible
-   (reduce-kv
-    (fn [acc i e]
-               (if (> e (:height acc))
-                 (-> acc
-                     (update :visible #(conj % (idxfn otheridx i)))
-                     (assoc :height e))
-                 acc
-                 ))
-             {:height -1 :visible nil}
-             (vec rc))
-   )
+(t/are [i o] (= o (calc-scenic (m/matrix t1) i))
+  [1 2] 4
+  [3 2] 8
   )
+
+(defn all-scenic [mtr]
+  (m/emap-indexed (fn [coord _] (calc-scenic mtr coord)) mtr))
+
 (defn part2 [in]
-    )
+  (m/emax (all-scenic (m/matrix in))))
 
 
 ; (part2 t1)
-; (part2 input)
-; (println (part2 input))
-
-; (prn (time (part2 input)))
 ; (part2 input)
 
 (defn solve-problem [infile]
