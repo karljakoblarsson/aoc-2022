@@ -55,29 +55,37 @@
   )
 
 ; (first t1)
-(visible (fn [o i] [i o]) (first t1) 0)
-(visible (fn [o i] [(- 5 i) o]) (reverse (first t1))  0)
-; (first t1)
+; (visible (fn [o i] [i o]) (first t1) 0)
+; (visible (fn [o i] [(- 5 i) o]) (reverse (first t1))  0)
 
-(defn walk-history [{:keys [current tree] :as state} line]
-  ; (println line)
-  ; (println state)
-  (match/match line
-    { :cmd :cd :arg path } (if (= path "..")
-                             (update state :current pop)
-                             (update state :current #(conj % path))
-                             )
-    { :cmd :ls } state
-    { :dir n } (update-in state [:tree current] #(conj % n))
-    { :file n :size size } (update-in state [:tree current] #(conj % size ))
-    )
-  )
-
-(defn build-tree [lines]
-  (:tree (reduce walk-history { :current [] :tree {} } lines) ))
-
-(def t2 (build-tree t1))
-(print t2)
+(defn total [in]
+  (let [rows in
+        cols (transpose in)
+        end-idx-rows (dec (count (first rows)))
+        end-idx-cols (dec (count (first cols)))
+        rowfn (fn [o i] [i o])
+        rrowfn (fn [o i] [(- end-idx-rows i) o])
+        colfn (fn [o i] [o i])
+        rcolfn (fn [o i] [o (- end-idx-cols i)])
+        
+        visible-rows (map-indexed #(visible rowfn %2 %1) rows)
+        visible-rrows (map-indexed #(visible rrowfn %2 %1) rows)
+        visible-cols (map-indexed #(visible colfn %2 %1) cols)
+        visible-rcols (map-indexed #(visible rcolfn %2 %1) cols)
+        ]
+    (println visible-rows)
+    (println visible-rrows)
+    (println visible-cols)
+    (println visible-rcols)
+    (apply st/union
+           (reduce #(into %1 %2) #{}  visible-rows)
+           (reduce #(into %1 %2) #{}  visible-rrows)
+           (reduce #(into %1 %2) #{}  visible-cols)
+           (reduce #(into %1 %2) #{}  visible-rcols)
+           )
+    ))
+(count (total t1))
+(total t1)
 
 (defn sum-sizes [tree]
   (reduce (fn [m [k v]] (assoc m k (sum (filter int? v))) ) {} tree))
