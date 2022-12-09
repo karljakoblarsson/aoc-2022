@@ -69,7 +69,7 @@
       [-1 -1] [ox oy]
       [-1 -2] [(dec ox) (dec oy)]
       [-1 1] [ox oy]
-      [-1 2] [ox (inc oy)]
+      [-1 2] [(dec ox) (inc oy)]
       [-2 0] [(dec ox) oy]
       [-2 -1] [(dec ox) (dec oy)]
       [-2 -2] [(dec ox) (dec oy)]
@@ -111,9 +111,24 @@
 ; ....#.
 ; s###..
 
-(defn print5 [head-po tail-pos]
-  
+(defn print5 [{ :keys [head-pos tail-pos]}]
+  (let [f (fn [x y] (cond
+                      (= [x y] head-pos) "H"
+                      (= [x y] tail-pos) "T"
+                      (= [x y] [0 0]) "s"
+                      true "."
+                      
+                      ))]
+    (println "---")
+    (println (apply str (map #(f % -4) (range 0 6))))
+    (println (apply str (map #(f % -3) (range 0 6))))
+    (println (apply str (map #(f % -2) (range 0 6))))
+    (println (apply str (map #(f % -1) (range 0 6))))
+    (println (apply str (map #(f % -0) (range 0 6))))
+    )
   )
+
+(map print5 (reductions step {:head-pos [0 0] :tail-pos [0 0]} t2))
 
 (println (walk t2))
 (count (distinct (walk t2)))
@@ -123,6 +138,8 @@
 
 (part1 t1)
 (part1 input)
+
+; betwen 6279 and 5000
 
 ; TODO Fix tihs
 (defn count-visible-line [line]
