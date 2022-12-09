@@ -141,61 +141,30 @@
 
 ; betwen 6279 and 5000
 
-; TODO Fix tihs
-(defn count-visible-line [line]
-  (:count
-  (reduce
-    (fn [acc e]
-      (cond
-        (>= e (:height acc)) (reduced (update acc :count inc))
-        (< e (:height acc)) (update acc :count inc)
-        )
-      )
-    { :height (first line) :count 0}
-    (rest line))
-   ))
 
-(t/are [i o] (= (count-visible-line i) o)
-       [5 3] 1
-       [5 5 2] 1
-       [5 1 2] 2
-       [5 3 5 3] 2
-
-       [5 3 5 3] 2
-       [5 3 3] 2
-       [5 3] 1
-       [5 4 9] 2
-       )
-
-(defn calc-scenic [mtr [r c]]
-  (let [rend (- (m/row-count mtr) 1)
-        cend (- (m/column-count mtr) 1)
-        row (count-visible-line
-              (sel/sel mtr (sel/irange r rend 1) c))
-        rrow (count-visible-line
-               (sel/sel mtr (sel/irange r 0 -1) c))
-        col (count-visible-line
-              (sel/sel mtr r (sel/irange c rend 1)))
-        rcol (count-visible-line
-               (sel/sel mtr r (sel/irange c 0 -1)))
-        ]
-    (* row rrow col rcol)
+(defn step2 [acc s]
+  ; (println acc s)
+  (let [new-head (update-head (first acc) s)
+        followers (reductions follow (conj (rest acc) new-head) )]
+    followers
     ))
 
-(t/are [i o] (= o (calc-scenic (m/matrix t1) i))
-  [1 2] 4
-  [3 2] 8
-  )
+(step2 [ [0 0] [0 0] ] (first t2))
 
-(defn all-scenic [mtr]
-  (m/emap-indexed (fn [coord _] (calc-scenic mtr coord)) mtr))
+(defn walk2 [init steps]
+  (reductions step2 (init2 init)  steps))
+
+(walk2 t2)
+(count (distinct (map second (walk2 2 (unroll t1)))))
+
+(defn init2 [n] (vec (repeat n [0 0])))
 
 (defn part2 [in]
-  (m/emax (all-scenic (m/matrix in))))
+  (count (distinct (map last (walk2 10 (unroll in))) )))
 
 
-; (part2 t1)
-; (part2 input)
+(part2 t1)
+(part2 input)
 
 (defn solve-problem [infile]
   (let [input-string (slurp infile)
