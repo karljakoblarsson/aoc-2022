@@ -60,50 +60,52 @@
         ]
     ; (print delta)
     (match/match delta
-      [0 0] [ox oy]
-      [0 -1] [ox oy]
-      [0 -2] [ox (dec oy)]
-      [0 1] [ox oy]
-      [0 2] [ox (inc oy)]
-      [-1 0] [ox oy]
+      [0 0]   [ox oy]
+      [0 -1]  [ox oy]
+      [0 1]   [ox oy]
+      [-1 0]  [ox oy]
       [-1 -1] [ox oy]
+      [-1 1]  [ox oy]
+      [1 0]   [ox oy]
+      [1 -1]  [ox oy]
+      [1 1]   [ox oy]
+
+      [0 2]   [ox (inc oy)]
+      [0 -2]  [ox (dec oy)]
+      [2 0]   [(inc ox) oy]
+      [-2 0]  [(dec ox) oy]
+
       [-1 -2] [(dec ox) (dec oy)]
-      [-1 1] [ox oy]
-      [-1 2] [(dec ox) (inc oy)]
-      [-2 0] [(dec ox) oy]
       [-2 -1] [(dec ox) (dec oy)]
       [-2 -2] [(dec ox) (dec oy)]
-      [-2 1] [(dec ox) (inc oy)]
-      [-2 2] [(dec ox) (inc oy)]
-      [1 0] [ox oy]
-      [1 -1] [ox oy]
-      [1 -2] [(inc ox) (dec oy)]
-      [1 1] [ox oy]
-      [1 2] [(inc ox) (inc oy)]
-      [2 0] [(inc ox) oy]
-      [2 -1] [(inc ox) (dec oy)]
-      [2 -2] [(inc ox) (dec oy)]
-      [2 1] [(inc ox) (inc oy)]
-      [2 2] [(inc ox) (inc oy)]
+
+      [1 2]   [(inc ox) (inc oy)]
+      [2 1]   [(inc ox) (inc oy)]
+      [2 2]   [(inc ox) (inc oy)]
+
+      [-1 2]  [(dec ox) (inc oy)]
+      [-2 1]  [(dec ox) (inc oy)]
+      [-2 2]  [(dec ox) (inc oy)]
+
+      [2 -1]  [(inc ox) (dec oy)]
+      [2 -2]  [(inc ox) (dec oy)]
+      [1 -2]  [(inc ox) (dec oy)]
       )
     )
   )
 
-(walk t2)
+; (walk t2)
 
-(defn step [{:keys [head-pos tail-pos] :as acc} s]
-  ; (println acc s)
-  (let [new-head (update-head head-pos s)]
-    { :head-pos new-head :tail-pos (follow new-head tail-pos)}
+(defn step [acc s]
+  (let [new-head (update-head (first acc) s)
+        followers (reductions follow (conj (rest acc) new-head) )]
+    followers
     ))
 
-; (update-head [0 [0]])
-; (step {:head-pos [0 0] :tail-pos [0 0]} (first t2))
 
-(defn walk [steps]
-  (map :tail-pos
-       (reductions step {:head-pos [0 0] :tail-pos [0 0]} steps)
-       ))
+(defn init [n] (vec (repeat n [0 0])))
+(defn walk [n steps]
+  (reductions step (init n) steps))
 
 ; ..##..
 ; ...##.
@@ -111,13 +113,12 @@
 ; ....#.
 ; s###..
 
-(defn print5 [{ :keys [head-pos tail-pos]}]
+(defn print6 [{ :keys [head-pos tail-pos]}]
   (let [f (fn [x y] (cond
                       (= [x y] head-pos) "H"
                       (= [x y] tail-pos) "T"
                       (= [x y] [0 0]) "s"
                       true "."
-                      
                       ))]
     (println "---")
     (println (apply str (map #(f % -4) (range 0 6))))
@@ -128,43 +129,34 @@
     )
   )
 
-(map print5 (reductions step {:head-pos [0 0] :tail-pos [0 0]} t2))
-
-(println (walk t2))
-(count (distinct (walk t2)))
+; (map print6 (reductions step {:head-pos [0 0] :tail-pos [0 0]} t2))
+; (println (walk t2))
+; (count (distinct (walk t2)))
 
 (defn part1 [in]
-  (count (distinct (walk (unroll in)))))
+  (count (distinct (map last (walk 2 (unroll in))))))
 
-(part1 t1)
-(part1 input)
+; (part1 t1)
+; (part1 input)
+
+(t/are [i o] (= o (part1 i))
+  t1 13
+  input 6197
+  )
 
 ; betwen 6279 and 5000
 
 
-(defn step2 [acc s]
-  ; (println acc s)
-  (let [new-head (update-head (first acc) s)
-        followers (reductions follow (conj (rest acc) new-head) )]
-    followers
-    ))
-
-(step2 [ [0 0] [0 0] ] (first t2))
-
-(defn walk2 [init steps]
-  (reductions step2 (init2 init)  steps))
-
-(walk2 t2)
-(count (distinct (map second (walk2 2 (unroll t1)))))
-
-(defn init2 [n] (vec (repeat n [0 0])))
-
 (defn part2 [in]
-  (count (distinct (map last (walk2 10 (unroll in))) )))
+  (count (distinct (map last (walk 10 (unroll in))) )))
 
+; (part2 t1)
+; (part2 input)
 
-(part2 t1)
-(part2 input)
+(t/are [i o] (= o (part2 i))
+  t1 1
+  input 2562
+  )
 
 (defn solve-problem [infile]
   (let [input-string (slurp infile)
