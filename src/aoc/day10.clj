@@ -40,11 +40,7 @@
     (case inst
       :addx [ prev (+ prev value)]
       :noop [prev]
-      )
-    )
-  )
-
-(step [1] (first t1))
+      )))
 
 (defn walk [steps]
   (flatten (reductions step [1] steps)))
@@ -87,7 +83,6 @@
 ; (part1 t1)
 ; (part1 input)
 
-
 (defn to-draw [x i]
   (case (- i x)
     -1 "#"
@@ -102,7 +97,6 @@
         pixels (map #(map to-draw % (range 0 40)) rows)]
     (dorun (map println pixels))
     ))
-
 
 ; (part2 t1)
 ; (part2 input)
