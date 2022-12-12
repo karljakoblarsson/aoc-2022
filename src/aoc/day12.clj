@@ -10,6 +10,7 @@
    ; [clojure.core.matrix.selection :as sel]
    ; [clojure.core.reducers :as r]
    ; [clojure.math.numeric-tower :as m]
+   [clojure.data.priority-map :as pm]
    )
   (:use aoc.core))
 
@@ -39,10 +40,10 @@
         end-row (quot end-index columns)
         heights (map #(map height %) lines)
         ]
-    (println start-index)
-    (println end-index)
-    (println columns)
-    (println (count lines))
+    ; (println start-index)
+    ; (println end-index)
+    ; (println columns)
+    ; (println (count lines))
   { :grid (m/matrix heights) :start [start-row start-column] :end [end-row end-column ]}
     ))
 
@@ -50,48 +51,75 @@
 (def input (prepare-input infile))
 
 (def t1 test-input)
-t1
+
 ; ((:operation (nth  t1 1)) 2) 
 
-(defn process-monkey [state i]
-  (let [{ :keys [items operation test-num true-dest false-dest] :as m} (nth state i)
-        worries (map #(quot (operation %) 3) items)
-        test-fn #(= 0 (mod % test-num))
-        groups (group-by test-fn worries)
-        to-true (get groups true)
-        to-false (get groups false)
-        inspected (count worries)
-        new-monkey (-> m
-                       (assoc :items [])
-                       (update :inspected #(+ % inspected)))
+(defn heuristic [[mr mc] [r c]]
+  (let [dr (- mr r)
+        dc (- mc c)]
+    (Math/sqrt (+ (* dr dr) (* dc dc)))))
+
+(defn get-neig [rows cols [r c]]
+  (let [f (fn [[x y]] (and (>= x 0) (< x rows) (>= y 0) (< y cols)))
+        deltas [[-1 0] [1 0] [0 -1] [0 1]]
+        coords (map (fn [[x y]] [(+ r x) (+ c y)]) deltas) ]
+    (filter f coords)))
+
+
+(defn check-neigh [dists mr mc open current-g [r c :as p] end-pos]
+  (let [curr-d 1
+        d-neigh (m/mget dists r c)
+        tent-g (+ current-g curr-d)
         ]
-    (-> state
-        (assoc i new-monkey)
-        (update-in [true-dest :items] #(concat % to-true))
-        (update-in [false-dest :items] #(concat % to-false))
-        )
-    ))
+    (if (<= tent-g d-neigh)
+      (do
+        (m/mset! dists r c tent-g)
+        (assoc open p (+ tent-g (heuristic end-pos p))))
+      open
+      )))
 
-(println (process-monkey (vec t1) 0))
-; (println (map :monkey (vec t1)))
+(def large-value 99999)
+(defn zm [r c] (m/mset (m/emap int (m/fill (m/zero-matrix r c) large-value)) 0 0 0))
 
-(defn round [state]
-  (let [n (count state)]
-    (reduce process-monkey (vec state) (range 0 n))
-    )
-  )
+(defn astar [heights dists rows cols open current end-pos]
+  (println "current" current)
+  (let [[r c] current
+        dists' (m/ensure-mutable dists)
+        neig (get-neig rows cols current)
+        current-height (m/mget heights r c)
+        neig' (filter (fn [[nr nc]] (<= (- (m/mget heights nr nc) current-height) 1)) neig)
+        current-g (m/mget dists r c)
+        open' (pop open)
+        open'' (reduce
+                #(check-neigh dists' rows cols %1 current-g %2 end-pos)
+                open'
+                neig')]
+    (println "neig: " neig')
+    (println "open: " open'')
+    (cond
+      (nil? current) :failure
+      (= end-pos current) (m/mget dists r c)
+      :else (recur
+         heights
+         dists'
+         rows
+         cols
+         open''
+         (first (peek open''))
+         end-pos
+             ))))
 
-(map :items (round t1))
+; (prn (astar t1 (zm 10 10) 10 10 (pm/priority-map [0 0] 0) [0 0]))
 
-(defn play [state]
-  (nth (iterate round state) 20)
-  )
+(defn run-astar [{ :keys [grid start end]} ]
+  (let [rows (m/dimension-count grid 0)
+        cols (m/dimension-count grid 1)
+        init-dists (zm rows cols)
+        open (pm/priority-map start 0)
+        ]
+    (astar grid init-dists rows cols open start end)))
 
-
-(apply )
-(sort (map :inspected (play t1)))
-
-(defn get-inspected [l] (map :inspected l))
+(run-astar t1)
 
 (defn part1 [in]
   (apply * (take 2 (reverse (sort (get-inspected (play in)))))
@@ -106,39 +134,6 @@ t1
 
 ; (part1 t1)
 ; (part1 input)
-
-(defn process-monkey2 [state i]
-  (let [{ :keys [items operation test-num true-dest false-dest] :as m} (nth state i)
-        common-num (apply * (map :test-num state))
-        worries (map #(mod (operation %) common-num) items)
-        test-fn #(= 0 (mod % test-num))
-        groups (group-by test-fn worries)
-        to-true (get groups true)
-        to-false (get groups false)
-        inspected (count worries)
-        new-monkey (-> m
-                       (assoc :items [])
-                       (update :inspected #(+ % inspected)))
-        ]
-    (-> state
-        (assoc i new-monkey)
-        (update-in [true-dest :items] #(concat % to-true))
-        (update-in [false-dest :items] #(concat % to-false))
-        )
-    ))
-
-
-(defn round2 [state]
-  (let [n (count state)]
-    (reduce process-monkey2 (vec state) (range 0 n))
-    ))
-
-; (println (get-inspected (nth (iterate round2 t1) 10000)))
-
-(defn play2 [state]
-  (nth (iterate round2 state) 10000))
-
-; (println (get-inspected (play2 t1)))
 
 (defn part2 [in]
   (apply * (take 2 (reverse (sort (get-inspected (play2 in)))))
