@@ -31,7 +31,7 @@
         start-index (s/index-of single-line "S")
         end-index (s/index-of single-line "E")
         str-in' (s/replace str-input #"S" "a")
-        str-in'' (s/replace str-in' #"S" "z")
+        str-in'' (s/replace str-in' #"E" "z")
         lines (s/split-lines str-in'')
         columns (count (first lines))
         start-column (mod start-index columns)
@@ -40,10 +40,6 @@
         end-row (quot end-index columns)
         heights (map #(map height %) lines)
         ]
-    ; (println start-index)
-    ; (println end-index)
-    ; (println columns)
-    ; (println (count lines))
   { :grid (m/matrix heights) :start [start-row start-column] :end [end-row end-column ]}
     ))
 
@@ -66,7 +62,7 @@
     (filter f coords)))
 
 
-(defn check-neigh [dists mr mc open current-g [r c :as p] end-pos]
+(defn check-neigh [dists mr mc [open came-from] current-g [r c :as p] end-pos current]
   (let [curr-d 1
         d-neigh (m/mget dists r c)
         tent-g (+ current-g curr-d)
@@ -74,15 +70,37 @@
     (if (<= tent-g d-neigh)
       (do
         (m/mset! dists r c tent-g)
-        (assoc open p (+ tent-g (heuristic end-pos p))))
-      open
+        [(assoc open p (+ tent-g (heuristic end-pos p)))
+         (assoc came-from p current) 
+         ] )
+      [open came-from]
       )))
 
 (def large-value 99999)
-(defn zm [r c] (m/mset (m/emap int (m/fill (m/zero-matrix r c) large-value)) 0 0 0))
+(defn zm [r c [sr sc]]
+  (m/mset (m/emap int (m/fill (m/zero-matrix r c) large-value)) sr sc 0))
 
-(defn astar [heights dists rows cols open current end-pos]
-  (println "current" current)
+; function reconstruct_path(cameFrom, current)
+    ; total_path := {current}
+    ; while current in cameFrom.Keys:
+    ;     current := cameFrom[current]
+    ;     total_path.prepend(current)
+    ; return total_path
+(defn reconstruct-path [came-from end]
+  ; (println came-from)
+  ; (println end)
+  (loop [path []
+         current end ]
+    (if (not (contains? came-from current)) 
+      path
+      (recur (conj path (came-from current)) (came-from current))
+      )))
+
+; (println (:cost (run-astar t1)))
+
+
+(defn astar [heights dists rows cols open current end-pos came-from]
+  ; (println "current" current)
   (let [[r c] current
         dists' (m/ensure-mutable dists)
         neig (get-neig rows cols current)
@@ -90,15 +108,16 @@
         neig' (filter (fn [[nr nc]] (<= (- (m/mget heights nr nc) current-height) 1)) neig)
         current-g (m/mget dists r c)
         open' (pop open)
-        open'' (reduce
-                #(check-neigh dists' rows cols %1 current-g %2 end-pos)
-                open'
+        [open'' came-from'] (reduce
+                #(check-neigh dists' rows cols %1 current-g %2 end-pos current)
+                [open' came-from]
                 neig')]
-    (println "neig: " neig')
-    (println "open: " open'')
+    ; (println "neig: " neig')
+    ; (println "open: " open)
+    ; (println "open'': " open'')
     (cond
       (nil? current) :failure
-      (= end-pos current) (m/mget dists r c)
+      (= end-pos current) { :path (reverse (reconstruct-path came-from' current))  :cost (m/mget dists r c)} 
       :else (recur
          heights
          dists'
@@ -107,6 +126,7 @@
          open''
          (first (peek open''))
          end-pos
+         came-from'
              ))))
 
 ; (prn (astar t1 (zm 10 10) 10 10 (pm/priority-map [0 0] 0) [0 0]))
@@ -114,12 +134,13 @@
 (defn run-astar [{ :keys [grid start end]} ]
   (let [rows (m/dimension-count grid 0)
         cols (m/dimension-count grid 1)
-        init-dists (zm rows cols)
+        init-dists (zm rows cols start)
         open (pm/priority-map start 0)
         ]
-    (astar grid init-dists rows cols open start end)))
+    ; (println "end:" end)
+    (astar grid init-dists rows cols open start end {})))
 
-(run-astar t1)
+(:cost (run-astar input))
 
 (defn part1 [in]
   (apply * (take 2 (reverse (sort (get-inspected (play in)))))
