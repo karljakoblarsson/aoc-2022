@@ -140,28 +140,106 @@
     ; (println "end:" end)
     (astar grid init-dists rows cols open start end {})))
 
-(:cost (run-astar input))
 
 (defn part1 [in]
-  (apply * (take 2 (reverse (sort (get-inspected (play in)))))
-         ))
+  (:cost (run-astar in))
+  )
 
-(part1 t1)
+; (time (part1 input))
 
 (t/are [i o] (= o (part1 i))
-  t1 10605
-  input 113232
+  t1 31
+  input 534
   )
 
 ; (part1 t1)
 ; (part1 input)
 
-(defn part2 [in]
-  (apply * (take 2 (reverse (sort (get-inspected (play2 in)))))
-         ))
+(defn check-neigh-dijk [dists mr mc [open came-from] current-g [r c :as p] current]
+  (let [curr-d 1
+        d-neigh (m/mget dists r c)
+        tent-g (+ current-g curr-d)
+        ]
+    (if (<= tent-g d-neigh)
+      (do
+        ; (println r c)
+        (m/mset! dists r c tent-g)
+        [(update open p #(- % tent-g)) (assoc came-from p current) ]
+        )
+      [open came-from]
+      )))
 
-(println (part2 input))
-; (part2 input)
+(run-dijkstra t1)
+
+(defn dijkstra [heights dists rows cols open current came-from]
+  ; (println "current" current)
+  (let [[r c] current
+        dists' (m/ensure-mutable dists)
+        neig (get-neig rows cols current)
+        current-height (m/mget heights r c)
+        neig' (filter #(contains? open %) neig)
+        ; neig'' (filter (fn [[nr nc]] (>= (- current-height (m/mget heights nr nc)) 0)) neig')
+        neig'' (filter (fn [[nr nc]] (<= (- current-height (m/mget heights nr nc)) 1)) neig')
+        current-g (m/mget dists r c)
+        open' (pop open)
+        [open'' came-from'] (reduce
+                #(check-neigh-dijk dists' rows cols %1 current-g %2 current)
+                [open' came-from]
+                neig'')]
+    ; (println "neig: " neig'')
+    ; (println "open: " open)
+    (cond
+      (nil? current) :failure
+      (empty? open'') { :came-from came-from'  :costs dists' }
+      :else (recur
+         heights
+         dists'
+         rows
+         cols
+         open''
+         (first (peek open''))
+         came-from'
+             ))))
+
+; (map #(vector % (heuristic % [2 4]))
+;   (m/index-seq (:grid t1))
+;      )
+
+
+(defn run-dijkstra [{ :keys [grid start end]} ]
+  (let [rows (m/dimension-count grid 0)
+        cols (m/dimension-count grid 1)
+        init-dists (zm rows cols end)
+        init-queue (map #(vector % large-value) (m/index-seq grid))
+        open (into (pm/priority-map) init-queue)
+        open' (assoc open start 0)
+        ]
+    ; (println "end:" end)
+    ; (println open')
+    (dijkstra grid init-dists rows cols open' end {})))
+
+
+
+(defn as [heights]
+  (m/emap #(if (= % 1) 1 0) heights)
+  )
+
+(m/pm (m/emul (m/emap #(if (= % 0) large-value %) (m/emap as (:grid t1))) (:costs (run-dijkstra t1)))  )
+
+(reverse (reconstruct-path (:came-from (run-dijkstra t1) ) [5 0]) )
+(:came-from (run-dijkstra t1) )
+  
+; (m/emul
+;   (:costs (run-dijkstra t1))
+;   (as (:grid t1)))
+
+(defn part2 [in]
+  (m/emin (m/emap #(if (= % 0) large-value %) (m/emul (:costs (run-dijkstra in)) (as (:grid in))))))
+
+; (println (part2 input))
+(part2 t1)
+; lower than 1119
+; and lower than 1000
 
 (defn solve-problem [infile]
   (let [input-string (slurp infile)
