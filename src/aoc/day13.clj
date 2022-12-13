@@ -54,6 +54,38 @@ t1
     )
   )
 
+(defn left2 [left right]
+  (cond
+    (and (int? left) (int? right)) (compare left right)
+    (int? left)  (recur [left] right)
+    (int? right) (recur left [right])
+    (and (empty? left) (empty? right)) 0
+    (empty? left) -1
+    (empty? right) 1
+    :else (let [fr (left2 (first left) (first right))]
+            (case fr
+              0 (recur (rest left) (rest right))
+              -1 -1
+              1 1
+              )
+            )
+
+    )
+  )
+(defn check2 [{:keys [left right]}]
+  (case (left2 left right)
+    -1 true
+    1 false
+    0 nil
+   )
+  )
+
+; (println (map check2 input))
+(t/is (=
+       (map check2 t1)
+       [true true false true false true false false]))
+
+
 (t/is (=
        (map check-if-left-is-smaller t1)
        [true true false true false true false false]))
@@ -68,35 +100,37 @@ t1
   [[] [1]] true
   )
 
-(pp/pprint (map vector input (map check-if-left-is-smaller input)))
+; (pp/pprint (map vector input (map check2 input)))
+; (keep-indexed #(if (check2 %2) (inc %1 ) nil) input) 
 
 (defn part1 [in]
-  (sum (keep-indexed #(if (check-if-left-is-smaller %2) (inc %1 ) nil) in)))
+  (sum (keep-indexed #(if (check2 %2) (inc %1 ) nil) in)))
 
-(keep-indexed #(if (check-if-left-is-smaller %2) (inc %1 ) nil) input) 
-
-(part1 input)
-; 720 is too high
-; and 500 is to low
-; and 710 is to low
-
+; (part1 input)
 ; (time (part1 input))
 
 (t/are [i o] (= o (part1 i))
-  t1 31
-  input 534
+  t1 13
+  input 5825
   )
 
 ; (part1 t1)
 ; (part1 input)
 
+(defn concat-all [in]
+  (reduce (fn [acc {:keys [left right]}] (into acc [left right])) [] in))
+
+; (apply * (keep-indexed #(if (or (= %2 [[2]]) (= %2 [[6]])) (inc %1) nil) (sort left2 (into (concat-all t1) [[[2]] [[6]]]) )))
+
+
 (defn part2 [in]
-  (m/emin (m/emap #(if (= % 0) large-value %) (m/emul (:costs (run-dijkstra in)) (as (:grid in))))))
+  (apply *
+         (keep-indexed
+          #(if (or (= %2 [[2]]) (= %2 [[6]])) (inc %1) nil)
+          (sort left2 (into (concat-all in) [[[2]] [[6]]])))))
 
 ; (println (part2 input))
-(part2 t1)
-; lower than 1119
-; and lower than 1000
+; (part2 input)
 
 (defn solve-problem [infile]
   (let [input-string (slurp infile)
