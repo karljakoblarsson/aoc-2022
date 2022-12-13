@@ -169,7 +169,8 @@
       [open came-from]
       )))
 
-(run-dijkstra t1)
+; (run-dijkstra t1)
+(m/pm (:costs (run-dijkstra t1)))
 
 (defn dijkstra [heights dists rows cols open current came-from]
   ; (println "current" current)
@@ -179,18 +180,20 @@
         current-height (m/mget heights r c)
         neig' (filter #(contains? open %) neig)
         ; neig'' (filter (fn [[nr nc]] (>= (- current-height (m/mget heights nr nc)) 0)) neig')
-        neig'' (filter (fn [[nr nc]] (<= (- current-height (m/mget heights nr nc)) 1)) neig')
+        neig'' (filter
+                 (fn [[nr nc]]
+                   (<= (- (m/mget heights nr nc) current-height) 1)) neig')
         current-g (m/mget dists r c)
         open' (pop open)
         [open'' came-from'] (reduce
                 #(check-neigh-dijk dists' rows cols %1 current-g %2 current)
                 [open' came-from]
                 neig'')]
-    ; (println "neig: " neig'')
+    (println "neig: " neig)
     ; (println "open: " open)
     (cond
       (nil? current) :failure
-      (empty? open'') { :came-from came-from'  :costs dists' }
+      (empty? open') { :came-from came-from'  :costs dists' }
       :else (recur
          heights
          dists'
@@ -212,17 +215,24 @@
         init-dists (zm rows cols end)
         init-queue (map #(vector % large-value) (m/index-seq grid))
         open (into (pm/priority-map) init-queue)
-        open' (assoc open start 0)
+        open' (assoc open start 1)
         ]
     ; (println "end:" end)
     ; (println open')
-    (dijkstra grid init-dists rows cols open' end {})))
+    (dijkstra (m/emap #(- 27 %) grid) init-dists rows cols open' end {})))
+
+(m/pm (:grid t1))
+
+(m/pm (:costs (run-dijkstra t1)))
+(println (reconstruct-path (:came-from (run-dijkstra t1)) [4 0]))
 
 
+(m/non-zero-count (m/emap #(if (= % 1) 1 0) (:grid input)))
 
 (defn as [heights]
   (m/emap #(if (= % 1) 1 0) heights)
   )
+
 
 (m/pm (m/emul (m/emap #(if (= % 0) large-value %) (m/emap as (:grid t1))) (:costs (run-dijkstra t1)))  )
 
