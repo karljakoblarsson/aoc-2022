@@ -164,13 +164,13 @@
       (do
         ; (println r c)
         (m/mset! dists r c tent-g)
-        [(update open p #(- % tent-g)) (assoc came-from p current) ]
+        [(assoc open p tent-g) (assoc came-from p current) ]
         )
       [open came-from]
       )))
 
 ; (run-dijkstra t1)
-(m/pm (:costs (run-dijkstra t1)))
+; (m/pm (:costs (run-dijkstra t1)))
 
 (defn dijkstra [heights dists rows cols open current came-from]
   ; (println "current" current)
@@ -189,7 +189,7 @@
                 #(check-neigh-dijk dists' rows cols %1 current-g %2 current)
                 [open' came-from]
                 neig'')]
-    (println "neig: " neig)
+    ; (println "neig: " neig)
     ; (println "open: " open)
     (cond
       (nil? current) :failure
@@ -209,35 +209,35 @@
 ;      )
 
 
-(defn run-dijkstra [{ :keys [grid start end]} ]
+(defn run-dijkstra [{ :keys [grid _ end]} ]
   (let [rows (m/dimension-count grid 0)
         cols (m/dimension-count grid 1)
         init-dists (zm rows cols end)
         init-queue (map #(vector % large-value) (m/index-seq grid))
         open (into (pm/priority-map) init-queue)
-        open' (assoc open start 1)
+        open' (assoc open end 1)
         ]
     ; (println "end:" end)
     ; (println open')
     (dijkstra (m/emap #(- 27 %) grid) init-dists rows cols open' end {})))
 
-(m/pm (:grid t1))
+; (m/pm (:grid t1))
 
-(m/pm (:costs (run-dijkstra t1)))
-(println (reconstruct-path (:came-from (run-dijkstra t1)) [4 0]))
+; (m/pm (:costs (run-dijkstra t1)))
+; (println (reconstruct-path (:came-from (run-dijkstra t1)) [4 0]))
 
 
-(m/non-zero-count (m/emap #(if (= % 1) 1 0) (:grid input)))
+; (m/non-zero-count (m/emap #(if (= % 1) 1 0) (:grid input)))
 
 (defn as [heights]
   (m/emap #(if (= % 1) 1 0) heights)
   )
 
 
-(m/pm (m/emul (m/emap #(if (= % 0) large-value %) (m/emap as (:grid t1))) (:costs (run-dijkstra t1)))  )
+; (m/pm (m/emul (m/emap #(if (= % 0) large-value %) (m/emap as (:grid t1))) (:costs (run-dijkstra t1)))  )
 
-(reverse (reconstruct-path (:came-from (run-dijkstra t1) ) [5 0]) )
-(:came-from (run-dijkstra t1) )
+; (reverse (reconstruct-path (:came-from (run-dijkstra t1) ) [5 0]) )
+; (:came-from (run-dijkstra t1) )
   
 ; (m/emul
 ;   (:costs (run-dijkstra t1))
@@ -247,7 +247,7 @@
   (m/emin (m/emap #(if (= % 0) large-value %) (m/emul (:costs (run-dijkstra in)) (as (:grid in))))))
 
 ; (println (part2 input))
-(part2 t1)
+(part2 input)
 ; lower than 1119
 ; and lower than 1000
 
